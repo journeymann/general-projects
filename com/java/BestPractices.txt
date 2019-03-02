@@ -1,0 +1,225 @@
+Java Programming Best Practices 
+
+Just a few tips and pointers that I have picked up over the many years that I have been programming java:
+
+1. Prefer returning Empty Collections/Objects instead of null
+
+If a program is returning a collection which does not have any value, make sure an Empty collection is returned rather than Null elements. This saves a lot of “if else” testing on Null Elements.
+
+/** Return an empty string instead of a null */
+public class getLocationName {
+    return (null==cityName ? "": cityName);
+}
+
+/** Return an empty Node object */
+public Node getLocationNode(List list, Key key) {
+
+    return (list.contains(key))? list.get(key) : new Node();
+}
+
+public class Foo{
+    /** Use NullObject design pattern. Define a custom Null Object as an alternative solution. Especially useful for collections. */
+    private class NullObject extends Node{
+
+      public NullObject(){}
+    }
+
+    /** Edge case (list == null) return custom NullObject (extends Node) to simplify downstream validation checks etc */
+    public Node getLocationNode(List list, Key key) {
+
+      return (list.contains(key))? list.get(key) : new NullObject();
+    }
+}
+
+/** Return an empty collection [List] object */
+public List getMyList(Map map, Key key) {
+
+    return (map.contains(key))? (ArrayList)map.get(key) : new List();
+}
+
+2. Use Strings carefully
+String class/ objects are immutable which means the JVM will not allow their value to be changed once the instance has been created. 
+If two Strings are concatenated using “+” operator in a “for” loop, then it creates a new String Object, every time. 
+This causes wastage of memory and increases performance time as object instantiation in java is very performance expensive. 
+Also, while instantiating a String Object, constructors should be avoided and instantiation should happen directly. 
+
+For example:
+
+  //Slower Instantiation
+  String bad = new String("Yet another string object");
+
+  //Faster Instantiation
+  String good = "Yet another string object"
+
+3. Avoid unnecessary Objects
+
+One of the most expensive operations (in terms of Memory Utilization) in Java is Object Creation. 
+Thus it is recommended that Objects should only be created or initialized if necessary. Following code gives an example:
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class Employees {
+
+    private List employees;
+	
+    public List getEmployees() {
+        //initialize only when required
+		    employees = (employees == null)? new ArrayList() : employees;
+        
+        return employees;
+    }
+}
+
+4. Avoiding Memory leaks 
+
+a) Memory leaks often cause performance degradation of software. Since, Java manages memory automatically, the developers do not have much control. But there are still some standard practices which can be used to protect from memory leakages.
+b) Always release database connections when querying is complete.
+d) Try to use Finally block as often possible.
+e) Release instances stored in Static Tables.
+
+5. Computation of power
+
+To compute power (^), java performs Exclusive OR (XOR). In order to compute power, Java offers two options:
+
+Multiplication:
+double square = double a * double a;                            // Optimized
+double cube = double a * double a * double a;                   // Non-optimized
+double cube = double a * double square;                         // Optimized
+double quad = double a * double a * double a * double a;        // Non-optimized
+double quad = double square * double square;                    // Optimized
+
+Math.pow():
+pow(double base, double exponent):‘pow’ method is used to calculate where multiplication is not possible (base^exponent)
+double cube = Math.pow(base, exponent);
+
+Math.pow should be used ONLY when necessary. For example, exponent is a fractional value. That is because Math.pow() method is typically around 300-600 times slower than a multiplication.
+
+6. How to handle Null Pointer Exceptions
+
+a) If the Object method will be referenced and used then always check for null before doing so.
+b) Null Pointer Exceptions are quite common in Java. This exception occurs when we try to call a method on a Null Object Reference. For example,
+
+int noOfStudents = school.listStudents().count;
+
+If in the above example, if get a NullPointerException, then either school is null or listStudents() is Null. It’s a good idea to check Nulls early so that they can be eliminated.
+
+    private int getListOfStudents(File[] files) {
+      if (files == null)
+        throw new NullPointerException("File list cannot be null");
+    }
+
+7. FileOutputStream Vs. FileWriter
+
+File writing in Java is done mainly in two ways: FileOutputStream and FileWriter. 
+Sometimes, developers struggle to choose one among them. This example helps them in choosing which one should be used under given requirements. First, let’s take a look at the implementation part:
+
+Using FileOutputStream:
+
+  File foutput = new File(file_location_string);
+  FileOutputStream fos = new FileOutputStream(foutput);
+  BufferedWriter output = new BufferedWriter(new OutputStreamWriter(fos));
+  output.write("Buffered Content");
+
+Using FileWriter:
+
+  FileWriter fstream = new FileWriter(file_location_string);
+  BufferedWriter output = new BufferedWriter(fstream);
+  output.write("Buffered Content");
+
+According to Java API specifications:
+  "FileOutputStream is meant for writing streams of raw bytes such as image data. For writing streams of characters, consider using FileWriter."
+This makes it pretty clear that for image type of Data FileOutputStream should be used and for Text type of data FileWriter should be used.
+
+8. Use Collections
+
+Java is shipped with a few collection classes – for example, Vector, Stack, Hashtable, Array. The developers are encouraged to use collections as extensively as possible for the following reasons:
+a) Use of collections makes the code reusable and interoperable.
+b) Collections make the code more structured, easier to understand and maintainable.
+c) Out of the box collection classes are well tested so the quality of code is good.
+
+9. 10-50-500 Rule
+
+In big software packages, maintaining code becomes very challenging. Developers who join fresh ongoing support projects, often complain about: Monolithic Code, Spaghetti Code. There is a very simple rule to avoid that or keep the code clean and maintainable: 10-50-500.
+a) 10: No package can have more than 10 classes.
+b) 50: No method can have more than 50 lines of code.
+c) 500: No class can have more than 500 lines of code.
+
+10. Usage of Design Patterns
+
+Design patterns help developers to incorporate best Software Design Principles in their software. 
+They also provide common platform for developers across the globe. 
+They provide standard terminology which makes developers to collaborate and easier to communicate to each other.
+
+11. Document ideas
+
+Never just start writing code. Strategize, Prepare, Design, Document, Review and Implementation. 
+First of all, jot down your requirements. Prepare a design document. Identify and mention assumptions properly. 
+Write higher level pseudocode of the overall system as well as each function so as to flesh out errors earlier in the developnment lifecycle.
+Get the documents peer reviewed and take a sign off on them.
+
+As the saying goes: "use javadoc liberally with feelings of unbridled joy ;)". Documenting the code written is good not only for the developer, but also for the poor fellow who will be inheriting the code you wrote.
+
+12. Use "equals" over ==
+
+== compares object references or the memory address (C, C++ pointer) of the objects, it checks to see if the two operands point to the same object (not equivalent objects, the same object).
+On the other hand, “equals” perform actual comparison of two strings.
+
+13. Name method carefully
+
+a) A good coding pattern when it comes to method names is the intention-revealing method-names pattern. 
+b) Using short method names may seem easy at first but after several months the name will not mean anything to you nor the guy after you.
+c) Its recommended to use a meaningful method name that adequately conveys the function or purpose of the method. Even familiar abbreviations may get confusing after a while.
+d) Method names should be verbs e.g. getHelloWorld(), searchForKeyvalue(), setValue() etc
+e) Boolean methods should be isConnected(), hasMutex() etc
+
+14. Use consistent coding style and variable naming
+
+a) Bracketology
+
+The way how brackets are placed in the code is really a matter of preference as it does not affect the code execution etc. However, for the sake of readability and consistency the preferred coding style is highly recommended:
+
+This coding style is recommended - GOOD:
+
+  public static void main(String[] args) {
+  }
+
+This format and its variations are not recommended - BAD:
+
+  public static void main(String[] args)
+    {
+    }
+
+b) Variable naming
+	i) give meaningful names
+	ii) shortest name that conveys purpose of variable
+	iii) avoid similar names
+	iv) use most descriptive name
+	v) follow company code convention, if it exists. 
+        - Start name of class as capital letter e.g. Employee, Student or Thread.
+        - Start name of method from small character and follow camel case e.g. getEmployee(), getPayDate() etc.
+        - Use camel case in variable names as well e.g. price, quantity, totalAmount etc.
+        - Use all caps for constants in Java e.g. MAX_QUANTITY, MAX_PRICE etc.
+        - follow bean naming convention, because many open source framework use reflection, which works on bean naming convention.
+	vi) class names should be nouns e.g. Car, House, School etc
+	vii) make good use of verbs, especially for boolean methods and operations
+
+15. Use API libraries preferentially
+
+a) Adopt the "proudly found elsewhere" (PFE) or "invented elsewhere" mentality.
+b) No need to reinvent the wheel.
+c) Software(s) can be developed much faster and is likely to be a lot more stable.
+d) APIs libraries tend to be more robust and errors affecting you are that you may not even be aware of may get resolved during library patches.
+
+16. S.O.L.I.D. Class Design Principle
+
+Single responsibility principle:	
+	A class should have one and only one task/responsibility. If class is performing more than one task, it leads to confusion.
+Open/closed principle:	
+	The developers should focus more on extending the software entities rather than modifying them.
+Liskov substitution principle:	
+	It should be possible to substitute the derived class with base class.
+Interface segregation principle:	
+	It’s like Single Responsibility Principle but applicable to interfaces. Each interface should be responsible for a specific task. The developers should need to implement methods which he/she doesn’t need.
+Dependency inversion principle:	
+	Depend upon Abstractions- but not on concretions. This means that each module should be separated from other using an abstract layer which binds them together.

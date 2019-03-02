@@ -1,0 +1,223 @@
+
+  Summary of Regular Expression Constructs
+ 
+  Characters:
+  
+  x	The character x
+  \\	The backslash character
+  \0n	The character with octal value 0n (0 <= n <= 7)
+  \0nn	The character with octal value 0nn (0 <= n <= 7)
+  \0mnn	The character with octal value 0mnn (0 <= m <= 3, 0 <= n <= 7)
+  \xhh	The character with hexadecimal value 0xhh
+  \uhhhh	The character with hexadecimal value 0xhhhh 
+  \x{h…h}	The character with hexadecimal value 0xh…h (Character.MIN_CODE_POINT <= 0xh…h <= Character.MAX_CODE_POINT)
+  \t	The tab character (‘\u0009’)
+  \n	The newline (line feed) character (‘\u000A’)
+  \r	The carriage-return character (‘\u000D’)
+  \f	The form-feed character (‘\u000C’)
+  \a	The alert (bell) character (‘\u0007’)
+  \e	The escape character (‘\u001B’)
+  \cx	The control character corresponding to x
+   
+  Character classes:
+  [abc]	a, b, or c (simple class)
+  [^abc]	Any character except a, b, or c (negation)
+  [a-zA-Z]	a through z or A through Z, inclusive (range)
+  [a-d[m-p]]	a through d, or m through p: [a-dm-p] (union)
+  [a-z&&[def]]	d, e, or f (intersection)
+  [a-z&&[^bc]]	a through z, except for b and c: [ad-z] (subtraction)
+  [a-z&&[^m-p]]	a through z, and not m through p: [a-lq-z](subtraction)
+   
+  Predefined character classes:
+  .	Any character (may or may not match line terminators)
+  \d	A digit: [0-9]
+  \D	A non-digit: [^0-9]
+  \s	A whitespace character: [ \t\n\x0B\f\r]
+  \S	A non-whitespace character: [^\s]
+  \w	A word character: [a-zA-Z_0-9]
+  \W	A non-word character: [^\w]
+   
+  Boundary matchers:
+  ^	The beginning of a line
+  $	The end of a line
+  \b	A word boundary
+  \B	A non-word boundary
+  \A	The beginning of the input
+  \G	The end of the previous match
+  \Z	The end of the input but for the final terminator, if any
+  \z	The end of the input
+
+Purpose of the following is to highlight the various ways that a regular expression can be evaluated:
+ 
+  Compare String.matches(String regex) VS Pattern.matches(String regex, CharSequence input)
+  	Implementation of String.matches(String regex):
+    
+  		public boolean matches(String regex) {
+      		return Pattern.matches(regex, this);
+  		}
+   
+  	Implementation of Pattern.matches(String regex, CharSequence input): 
+    
+  		public static boolean matches(String regex, CharSequence input) {
+      		Pattern p = Pattern.compile(regex);
+      		Matcher m = p.matcher(input);
+      		return m.matches();
+  		}
+   
+   Conclusion: str.matches(regex) is exactly the same as Pattern.compile(regex).matcher(str).matches().
+   Note: Same as matches(), not same as find().
+   Using Pattern.compile() is better/required if:
+  		You need access to the Matcher.
+  		&nbsp;&nbsp;&nbsp;&nbsp;E.g. you need the result of capture groups.
+  		You do the same matches(regex) call many times. Only compiling the regex pattern once improves performance.
+
+
+Reference Implementation that uses regular expressions:
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+		
+public class Validator {
+	
+	/** Statically scoped memory efficient validation type constants */
+	public static final byte USERNAME = (byte)100; 
+	public static final byte PASSWORD = (byte)101;
+	public static final byte EMAIL = (byte)102;
+	public static final byte URL = (byte)103;
+	public static final byte IPADDRESS = (byte)104;
+	public static final byte HTMLTAG = (byte)105;
+	public static final byte STRONG_PASSWORD = (byte)106;	
+	
+	/**
+	 * Predefined regular expressions constants for rule based validating various types of input strings. 
+	 * @see <a href="https://docs.oracle.com/javase/tutorial/essential/regex/">Lesson: Regular Expressions (The Java<sup>tm</sup> Tutorials > Esential Classes (Oracle)</a>
+	 * 
+	 * */
+	private final String REGEXP_USERNAME = "/^[a-z0-9_-]{3,16}$/";
+	private final String REGEXP_PASSWORD = "/^[a-zA-Z0-9_-$#@!]{6,18}$/";
+	private final String REGEXP_EMAIL = "/^([a-z0-9_\\.-]+)@([\\da-z\\.-]+)\\.([a-z\\.]{2,6})$/";
+	private final String REGEXP_URL = "/^(https?|ftp)://[^\\s/$.?#].[^\\s]*$/";
+	private final String REGEXP_IPADDRESS = "/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/";
+	private final String REGEXP_HTMLTAG = "/^<([a-z]+)([^<]+)*(?:>(.*)<\\/\\1>|\\s+\\/>)$/";
+	
+	/**
+	 *     (?=.*\d)		#   must contains one digit from 0-9
+	 *     (?=.*[a-z])		#   must contains one lowercase characters
+	 *     (?=.*[A-Z])		#   must contains one uppercase characters
+	 *     (?=.*[@#$%])		#   must contains one special symbols in the list "@#$%"
+ 	 *     match anything with previous condition checking{6,20} length at least 6 characters and maximum of 20
+	 */		
+	private final String REGEXP_STRONG_PASSWORD = "((?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%]).{6,20})";	
+	
+	private final Set<Byte> validTypes = new HashSet<Byte>(Arrays.asList(USERNAME, PASSWORD, EMAIL, IPADDRESS, HTMLTAG, STRONG_PASSWORD));
+	
+	@SuppressWarnings("serial")
+	private final Map<Byte, String> expressions = new HashMap<Byte, String>() {
+        {
+            put(USERNAME, REGEXP_USERNAME);
+            put(PASSWORD, REGEXP_PASSWORD);
+            put(EMAIL, REGEXP_EMAIL);
+            put(URL, REGEXP_URL);
+            put(IPADDRESS, REGEXP_IPADDRESS);
+            put(HTMLTAG, REGEXP_HTMLTAG);
+            put(STRONG_PASSWORD, REGEXP_STRONG_PASSWORD);            
+        };
+    };	
+    
+	/**
+	 * Validates a given string based on predefined rules.
+	 * Heavy lifting and rule enforcement done via regular expressions.
+	 * 
+	 * See {@link java.util.Optional#of#isPresent()) Optional.isPresent()} for java 1.8 feature to validate input object param not null.
+	 * See {@link java.lang.String#matches(String) String.matches(regex)} for string <String> regex processing. 
+	 * 
+	 * @param String <String> literal to be validated.
+	 * @param Constant (byte primitive) representing the type of validation to be performed.
+	 * @return boolean primitive flagging success of the invalid operation  
+	 * @throws none
+	 */
+	public boolean isvalid(String _string, byte _type){
+		
+		return Optional.of(_string).isPresent() && 
+				validTypes.contains(_type) && _string.matches((String)expressions.get(_type));
+	}
+	
+	/**
+	 * Validates a given string based on rules (regular expression) provided via parameter passed
+	 * Heavy lifting and rule enforcement done via regular expressions.
+	 * 
+	 * See {@link java.util.Optional#of#isPresent()) Optional.isPresent()} for java 1.8 feature to validate input object param not null.
+	 * See {@link java.lang.String#matches(String) String.matches(regex)} for string <String> regex processing. 
+	 *  
+	 * @param String <String> literal to be validated.
+	 * @param String <String> regular expression to be used to validate input <String>
+	 * @return boolean primitive flagging success of the invalid operation 
+	 * @throws none
+	 */
+	public boolean isvalid(String _string, String _expression){
+		
+		return Optional.of(_string).isPresent() && _string.matches(_expression);
+	}
+	
+	/**
+	 * Convenience method that validates a given user-name string based on predefined rules.
+	 * 
+	 * Use {@link #isvalid(String _string, byte _type) isvalid()} to perform username validation 
+	 * 
+	 * @param String <String> user name to be validated.
+	 * @return boolean primitive flagging success of the invalid operation  
+	 * @throws none
+	 */
+	public boolean isvalidUsername(String _string){
+		
+		return isvalid(_string, USERNAME);
+	}
+	
+	/**
+	 * Convenience method that validates a email address string based on predefined rules.
+	 * 
+	 * Use {@link #isvalid(String _string, byte _type) isvalid()} to perform email validation 
+	 * 
+	 * @param String <String> email address to be validated.
+	 * @return boolean primitive flagging success of the invalid operation  
+	 * @throws none
+	 */
+	public boolean isvalidEmail(String _string){
+		
+		return isvalid(_string, EMAIL);
+	}
+	
+	/**
+	 * Convenience method that validates a given password string based on predefined rules.
+	 * Rule preference used is regular expression for validating strong passwords
+	 * 
+	 * Use {@link #isvalid(String _string, byte _type) isvalid()} to perform password validation 
+	 * 
+	 * @param String <String> literal to be validated.
+	 * @return boolean primitive flagging success of the invalid operation  
+	 * @throws none
+	 */
+	public boolean isvalidPassword(String _string){
+		
+		return isvalid(_string, STRONG_PASSWORD);
+	}
+	
+	/**
+	 * Convenience method that validates a given html tag string based on predefined rules.
+	 * 
+	 * Use {@link #isvalid(String _string, byte _type) isvalid()} to perform html tag validation 
+	 * 
+	 * @param String <String> literal to be validated.
+	 * @return boolean primitive flagging success of the invalid operation  
+	 * @throws none
+	 */
+	public boolean isvalidHtmlTag(String _string){
+		
+		return isvalid(_string, HTMLTAG);
+	}
+	
+}
